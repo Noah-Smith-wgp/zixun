@@ -30,3 +30,7 @@ def get_app(config=Config):
 app = get_app(DevelopmentConfig)
 
 db = SQLAlchemy(app)
+
+
+from project.apps.index import index_buleprint
+app.register_blueprint(index_buleprint)
