@@ -4,7 +4,10 @@ from flask_session import Session
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import CSRFProtect
 
-from config import Config, DevelopmentConfig
+from config import Config, DevelopmentConfig, setup_log
+
+# 记录日志
+setup_log(DevelopmentConfig)
 
 
 def get_app(config=Config):
