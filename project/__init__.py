@@ -34,3 +34,6 @@ db = SQLAlchemy(app)
 
 from project.apps.index import index_buleprint
 app.register_blueprint(index_buleprint)
+
+from project.apps.verification import verify_buleprint
+app.register_blueprint(verify_buleprint)
