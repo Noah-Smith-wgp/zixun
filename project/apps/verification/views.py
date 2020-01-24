@@ -1,8 +1,9 @@
 import random
 import re
-from flask import request, current_app, make_response, jsonify
+from flask import request, current_app, make_response, jsonify, session
 from flask_restful import Api, Resource, reqparse
 
+from project import db
 from project.libs.captcha.captcha import captcha
 from project.libs.yuntongxun.ccp_sms import CCP
 from project.models.models import User
@@ -40,7 +41,7 @@ def check_mobile(value):
 
 
 class SmsCodeResource(Resource):
-
+    """短信验证码"""
     def post(self):
 
         parse = reqparse.RequestParser()
@@ -96,5 +97,60 @@ class SmsCodeResource(Resource):
         return jsonify(errno=RET.OK, errmsg="发送成功")
 
 
+class RegisterResource(Resource):
+    """注册"""
+    def post(self):
+
+        parse = reqparse.RequestParser()
+        parse.add_argument('mobile', location='json', required=True, type=check_mobile)
+        parse.add_argument('smscode',location='json', required=True)
+        parse.add_argument('password', location='json', required=True)
+
+        args = parse.parse_args()
+
+        mobile = args.get('mobile')
+        smscode = args.get('smscode')
+        password = args.get('password')
+
+        try:
+            server_smscode = current_app.redis_store.get('sms_%s' % mobile)
+        except Exception as e:
+            current_app.logger.error(e)
+            return jsonify(errno=RET.DBERR, errmsg="获取本地验证码失败")
+
+        if not server_smscode:
+            # 短信验证码过期
+            return jsonify(errno=RET.NODATA, errmsg="短信验证码过期")
+
+        if smscode != server_smscode:
+            return jsonify(errno=RET.DATAERR, errmsg="短信验证码错误")
+
+        try:
+            current_app.redis_store.delete('sms_%s' % mobile)
+        except Exception as e:
+            current_app.logger.error(e)
+
+        user = User()
+        user.nick_name = mobile
+        user.mobile = mobile
+        user.password = password
+
+        try:
+            db.session.add(user)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(e)
+            return jsonify(errno=RET.DATAERR, errmsg="数据保存错误")
+
+        # 状态保持
+        session["user_id"] = user.id
+        session["nick_name"] = user.nick_name
+        session["mobile"] = user.mobile
+
+        return jsonify(errno=RET.OK, errmsg="OK")
+
+
 verify_api.add_resource(ImageCodeResource, '/image_code')
 verify_api.add_resource(SmsCodeResource, '/sms_code')
+verify_api.add_resource(RegisterResource, '/register')
