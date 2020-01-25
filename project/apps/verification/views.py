@@ -155,7 +155,6 @@ class RegisterResource(Resource):
 
 class LoginResource(Resource):
     """登录"""
-    @property
     def post(self):
 
         parse = reqparse.RequestParser()
