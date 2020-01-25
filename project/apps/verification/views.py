@@ -122,7 +122,7 @@ class RegisterResource(Resource):
             # 短信验证码过期
             return jsonify(errno=RET.NODATA, errmsg="短信验证码过期")
 
-        if smscode != server_smscode:
+        if smscode != server_smscode.decode():
             return jsonify(errno=RET.DATAERR, errmsg="短信验证码错误")
 
         try:

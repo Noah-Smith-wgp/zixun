@@ -113,7 +113,7 @@ $(function(){
     })
 
 
-    // TODO 注册按钮点击
+    // 注册按钮点击
     $(".register_form_con").submit(function (e) {
         // 阻止默认提交操作
         e.preventDefault()
@@ -144,7 +144,27 @@ $(function(){
         }
 
         // 发起注册请求
+        var params = {
+            "mobile": mobile,
+            "smscode": smscode,
+            "password": password,
+        }
 
+        $.ajax({
+            url: "/verification/register",
+            type: "post",
+            data: JSON.stringify(params),
+            contentType: 'application/json',
+            success: function (resp) {
+                if (resp.errno == "0"){
+                    // 刷新当前界面
+                    location.reload()
+                }else {
+                    $("#register-password-err").html(resp.errmsg)
+                    $("#register-password-err").show()
+                }
+            }
+        })
     })
 })
 
