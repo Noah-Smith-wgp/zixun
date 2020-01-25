@@ -1,5 +1,7 @@
 import random
 import re
+from datetime import datetime
+
 from flask import request, current_app, make_response, jsonify, session
 from flask_restful import Api, Resource, reqparse
 
@@ -45,7 +47,7 @@ class SmsCodeResource(Resource):
     def post(self):
 
         parse = reqparse.RequestParser()
-        parse.add_argument('mobile', location='json', required=True, type=check_mobile, help='手机号不正确')
+        parse.add_argument('mobile', location='json', required=True, type=check_mobile)
         parse.add_argument('image_code', location='json', required=True)
         parse.add_argument('image_code_id', location='json', required=True)
 
@@ -151,6 +153,46 @@ class RegisterResource(Resource):
         return jsonify(errno=RET.OK, errmsg="OK")
 
 
+class LoginResource(Resource):
+    """登录"""
+    @property
+    def post(self):
+
+        parse = reqparse.RequestParser()
+        parse.add_argument('mobile', location='json', required=True, type=check_mobile)
+        parse.add_argument('password', location='json', required=True)
+        args = parse.parse_args()
+
+        mobile = args.get('mobile')
+        password = args.get('password')
+
+        try:
+            user = User.query.filter_by(mobile=mobile).first()
+        except Exception as e:
+            current_app.logger.error(e)
+            return jsonify(errno=RET.DBERR, errmsg="查询数据错误")
+
+        if not user:
+            return jsonify(errno=RET.USERERR, errmsg="用户不存在")
+
+        if not user.check_passowrd(password):
+            return jsonify(errno=RET.PWDERR, errmsg="密码错误")
+
+        session["user_id"] = user.id
+        session["nick_name"] = user.nick_name
+        session["mobile"] = user.mobile
+
+        user.last_login = datetime.now()
+
+        try:
+            db.session.commit()
+        except Exception as e:
+            current_app.logger.error(e)
+
+        return jsonify(errno=RET.OK, errmsg="OK")
+
+
 verify_api.add_resource(ImageCodeResource, '/image_code')
 verify_api.add_resource(SmsCodeResource, '/sms_code')
 verify_api.add_resource(RegisterResource, '/register')
+verify_api.add_resource(LoginResource, '/login')
