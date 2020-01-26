@@ -313,3 +313,18 @@ function generateUUID() {
     });
     return uuid;
 }
+
+function logout() {
+    $.ajax({
+        url: "/verification/logout",
+        type: "post",
+        contentType: "application/json",
+        headers: {
+            "X-CSRFToken": getCookie("csrf_token")
+        },
+        success: function (resp) {
+            // 刷新当前界面
+            location.reload();
+        }
+    })
+}

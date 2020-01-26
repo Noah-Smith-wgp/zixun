@@ -191,7 +191,19 @@ class LoginResource(Resource):
         return jsonify(errno=RET.OK, errmsg="OK")
 
 
+class LogoutResource(Resource):
+    """退出登录"""
+    def post(self):
+
+        session.pop('user_id', None)
+        session.pop('nick_name', None)
+        session.pop('mobile', None)
+        # 返回结果
+        return jsonify(errno=RET.OK, errmsg="OK")
+
+
 verify_api.add_resource(ImageCodeResource, '/image_code')
 verify_api.add_resource(SmsCodeResource, '/sms_code')
 verify_api.add_resource(RegisterResource, '/register')
 verify_api.add_resource(LoginResource, '/login')
+verify_api.add_resource(LogoutResource, '/logout')
