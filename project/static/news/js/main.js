@@ -118,6 +118,9 @@ $(function(){
         $.ajax({
             url: "/verification/login",
             method: "post",
+            headers: {
+                "X-CSRFToken": getCookie("csrf_token")
+            },
             data: JSON.stringify(params),
             contentType: "application/json",
             success: function (resp) {
@@ -173,6 +176,9 @@ $(function(){
         $.ajax({
             url: "/verification/register",
             type: "post",
+            headers: {
+                "X-CSRFToken": getCookie("csrf_token")
+            },
             data: JSON.stringify(params),
             contentType: 'application/json',
             success: function (resp) {
