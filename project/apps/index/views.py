@@ -1,7 +1,11 @@
 from project.models.models import User, News, Category
 from project.utils import constants
+from project.utils.response_code import RET
 from . import index_buleprint
-from flask import render_template, current_app, session
+from flask import render_template, current_app, session, request, jsonify
+from flask_restful import Api, Resource
+
+index_api = Api(index_buleprint)
 
 
 # 网站图标展示
@@ -47,3 +51,44 @@ def index():
     }
 
     return render_template('news/index.html', data=data)
+
+
+class NewsListResource(Resource):
+
+    def get(self):
+
+        page = request.args.get('page', '1')
+        per_page = request.args.get('per_page', constants.HOME_PAGE_MAX_NEWS)
+        category_id = request.args.get('cid', '1')
+
+        try:
+            page = int(page)
+            per_page = int(per_page)
+        except Exception as e:
+            current_app.logger.error(e)
+            return jsonify(errno=RET.PARAMERR, errmsg="参数错误")
+
+        # 查询数据并分页
+        filters = []
+        # 如果分类id不为1，那么添加分类id的过滤
+        if category_id != "1":
+            filters.append(News.category_id == category_id)
+
+        try:
+            paginate = News.query.filter(*filters).order_by(News.create_time.desc()).paginate(page, per_page, False)
+            items = paginate.items
+            total_page = paginate.pages
+            current_page = paginate.page
+        except Exception as e:
+            current_app.logger.error(e)
+            return jsonify(errno=RET.DBERR, errmsg="数据查询失败")
+
+        news_list = []
+        for news in items:
+            news_list.append(news.to_basic_dict())
+
+        return jsonify(errno=RET.OK, errmsg="OK", totalPage=total_page, currentPage=current_page, newsList=news_list,
+                       cid=category_id)
+
+
+index_api.add_resource(NewsListResource, '/news_list')
