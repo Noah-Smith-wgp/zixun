@@ -1,4 +1,4 @@
-from project.models.models import User, News
+from project.models.models import User, News, Category
 from project.utils import constants
 from . import index_buleprint
 from flask import render_template, current_app, session
@@ -22,6 +22,7 @@ def index():
         except Exception as e:
             current_app.logger.error(e)
 
+    # 点击排行
     news_list = None
     try:
         news_list = News.query.order_by(News.clicks.desc()).limit(constants.CLICK_RANK_MAX_NEWS)
@@ -32,9 +33,17 @@ def index():
     for news in news_list if news_list else []:
         click_news_list.append(news.to_basic_dict())
 
+    # 新闻分类
+    categories = Category.query.all()
+
+    categories_dicts = []
+    for category in categories:
+        categories_dicts.append(category.to_dict())
+
     data = {
         "user_info": user.to_dict() if user else None,
-        "click_news_list": click_news_list
+        "click_news_list": click_news_list,
+        "categories": categories_dicts
     }
 
     return render_template('news/index.html', data=data)
