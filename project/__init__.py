@@ -8,6 +8,8 @@ from flask_wtf.csrf import generate_csrf
 from config import Config, DevelopmentConfig, setup_log
 
 # 记录日志
+from project.utils.common import do_index_class
+
 setup_log(DevelopmentConfig)
 
 
@@ -24,6 +26,9 @@ def get_app(config=Config):
     CSRFProtect(app)
 
     Session(app)
+
+    # 添加自定义过滤器
+    app.add_template_filter(do_index_class, 'index_class')
 
     return app
 
