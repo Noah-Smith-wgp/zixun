@@ -47,8 +47,11 @@ def after_request(response):
     return response
 
 
-from project.apps.index import index_buleprint
-app.register_blueprint(index_buleprint)
+from project.apps.index import index_blueprint
+app.register_blueprint(index_blueprint)
 
-from project.apps.verification import verify_buleprint
-app.register_blueprint(verify_buleprint)
+from project.apps.verification import verify_blueprint
+app.register_blueprint(verify_blueprint)
+
+from project.apps.news import news_blueprint
+app.register_blueprint(news_blueprint)

@@ -11,9 +11,9 @@ from project.libs.yuntongxun.ccp_sms import CCP
 from project.models.models import User
 from project.utils import constants
 from project.utils.response_code import RET
-from . import verify_buleprint
+from . import verify_blueprint
 
-verify_api = Api(verify_buleprint)
+verify_api = Api(verify_blueprint)
 
 
 class ImageCodeResource(Resource):
