@@ -1,8 +1,9 @@
 from project.models.models import User, News, Category
 from project.utils import constants
+from project.utils.common import user_login_data
 from project.utils.response_code import RET
 from . import index_blueprint
-from flask import render_template, current_app, session, request, jsonify
+from flask import render_template, current_app, session, request, jsonify, g
 from flask_restful import Api, Resource
 
 index_api = Api(index_blueprint)
@@ -15,16 +16,8 @@ def favicon():
 
 
 @index_blueprint.route('/')
+@user_login_data
 def index():
-    # 获取当前登录用户的id
-    user_id = session.get('user_id')
-    # 通过id获取当前用户
-    user = None
-    if user_id:
-        try:
-            user = User.query.get(user_id)
-        except Exception as e:
-            current_app.logger.error(e)
 
     # 点击排行
     news_list = None
@@ -45,7 +38,7 @@ def index():
         categories_dicts.append(category.to_dict())
 
     data = {
-        "user_info": user.to_dict() if user else None,
+        "user_info": g.user.to_dict() if g.user else None,
         "click_news_list": click_news_list,
         "categories": categories_dicts
     }

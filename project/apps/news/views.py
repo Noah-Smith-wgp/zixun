@@ -1,11 +1,13 @@
-from flask import render_template, current_app, abort
+from flask import render_template, current_app, abort, g
 
 from project.models.models import News
 from project.utils import constants
+from project.utils.common import user_login_data
 from . import news_blueprint
 
 
 @news_blueprint.route('/<int:news_id>')
+@user_login_data
 def news_detail(news_id):
     try:
         news = News.query.get(news_id)
@@ -33,6 +35,7 @@ def news_detail(news_id):
     data = {
         "news": news.to_dict(),
         "click_news_list": click_news_list,
+        "user_info": g.user.to_dict() if g.user else None,
     }
 
     return render_template('news/detail.html', data=data)
