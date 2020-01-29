@@ -1,9 +1,14 @@
-from flask import render_template, current_app, abort, g
+from flask import render_template, current_app, abort, g, jsonify
+from flask_restful import Api, Resource, reqparse
 
 from project.models.models import News
 from project.utils import constants
 from project.utils.common import user_login_data
+from project.utils.response_code import RET
 from . import news_blueprint
+from project import db
+
+news_api = Api(news_blueprint)
 
 
 @news_blueprint.route('/<int:news_id>')
@@ -32,10 +37,65 @@ def news_detail(news_id):
     for new in news_list if news_list else []:
         click_news_list.append(new.to_basic_dict())
 
+    # 判断是否收藏该新闻
+    is_collected = False
+    if g.user:
+        if news in g.user.collection_news:
+            is_collected = True
+
     data = {
         "news": news.to_dict(),
         "click_news_list": click_news_list,
+        "is_collected": is_collected,
         "user_info": g.user.to_dict() if g.user else None,
     }
 
     return render_template('news/detail.html', data=data)
+
+
+def check_action(action):
+    if action not in ("collect", "cancel_collect"):
+        return jsonify(errno=RET.PARAMERR, errmsg="参数错误")
+    else:
+        return action
+
+
+class NewsCollectResource(Resource):
+    @user_login_data
+    def post(self):
+
+        user = g.user
+        if not user:
+            return jsonify(errno=RET.SESSIONERR, errmsg="用户未登录")
+
+        parse = reqparse.RequestParser()
+        parse.add_argument('news_id', location='json', required=True)
+        parse.add_argument('action', location='json', required=True, type=check_action)
+        args = parse.parse_args()
+        news_id = args.get('news_id')
+        action = args.get('action')
+
+        try:
+            news = News.query.get(news_id)
+        except Exception as e:
+            current_app.logger.error(e)
+            return jsonify(errno=RET.DBERR, errmsg="查询数据失败")
+
+        if not news:
+            return jsonify(errno=RET.NODATA, errmsg="新闻数据不存在")
+
+        if action == "collect":
+            user.collection_news.append(news)
+        else:
+            user.collection_news.remove(news)
+
+        try:
+            db.session.commit()
+        except Exception as e:
+            current_app.logger.error(e)
+            db.session.rollback()
+            return jsonify(errno=RET.DBERR, errmsg="保存失败")
+        return jsonify(errno=RET.OK, errmsg="操作成功")
+
+
+news_api.add_resource(NewsCollectResource, '/news_collect')
