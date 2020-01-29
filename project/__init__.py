@@ -1,5 +1,5 @@
 import redis
-from flask import Flask
+from flask import Flask, g, render_template
 from flask_session import Session
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import CSRFProtect
@@ -8,7 +8,7 @@ from flask_wtf.csrf import generate_csrf
 from config import Config, DevelopmentConfig, setup_log
 
 # 记录日志
-from project.utils.common import do_index_class
+from project.utils.common import do_index_class, user_login_data
 
 setup_log(DevelopmentConfig)
 
@@ -45,6 +45,14 @@ def after_request(response):
     # 通过 cookie 将值传给前端
     response.set_cookie("csrf_token", csrf_token)
     return response
+
+
+@app.errorhandler(404)
+@user_login_data
+def page_not_found(_):
+    user = g.user
+    data = {"user_info": user.to_dict() if user else None}
+    return render_template('news/404.html', data=data)
 
 
 from project.apps.index import index_blueprint
