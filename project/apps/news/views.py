@@ -1,7 +1,7 @@
 from flask import render_template, current_app, abort, g, jsonify, request
 from flask_restful import Api, Resource, reqparse
 
-from project.models.models import News, Comment, CommentLike
+from project.models.models import News, Comment, CommentLike, User
 from project.utils import constants
 from project.utils.common import user_login_data
 from project.utils.response_code import RET
@@ -67,18 +67,24 @@ def news_detail(news_id):
             comment_dict["is_like"] = True
         comment_list.append(comment_dict)
 
-    # 判断是否收藏该新闻
+    # 当前登录用户是否关注当前新闻作者
+    is_followed = False
+    # 判断用户是否收藏过该新闻
     is_collected = False
     if g.user:
         if news in g.user.collection_news:
             is_collected = True
+        if news.user is not None:
+            if news.user.followers.filter(User.id == g.user.id).count() > 0:
+                is_followed = True
 
     data = {
         "news": news.to_dict(),
         "click_news_list": click_news_list,
         "is_collected": is_collected,
         "user_info": g.user.to_dict() if g.user else None,
-        "comments": comment_list
+        "comments": comment_list,
+        "is_followed": is_followed
     }
 
     return render_template('news/detail.html', data=data)
