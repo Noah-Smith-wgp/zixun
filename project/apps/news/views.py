@@ -37,6 +37,17 @@ def news_detail(news_id):
     for new in news_list if news_list else []:
         click_news_list.append(new.to_basic_dict())
 
+    # 获取当前新闻的评论
+    comments = []
+    try:
+        comments = Comment.query.filter(Comment.news_id == news_id).order_by(Comment.create_time.desc()).all()
+    except Exception as e:
+        current_app.logger.error(e)
+    comment_list = []
+    for item in comments:
+        comment_dict = item.to_dict()
+        comment_list.append(comment_dict)
+
     # 判断是否收藏该新闻
     is_collected = False
     if g.user:
@@ -48,6 +59,7 @@ def news_detail(news_id):
         "click_news_list": click_news_list,
         "is_collected": is_collected,
         "user_info": g.user.to_dict() if g.user else None,
+        "comments": comment_list
     }
 
     return render_template('news/detail.html', data=data)
