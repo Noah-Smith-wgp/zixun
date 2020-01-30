@@ -3,6 +3,10 @@
 文章详情页
 {% endblock %}
 
+{% block scriptBlock %}
+<script type="text/javascript" src="../../static/news/js/detail.js"></script>
+{% endblock %}
+
 {% block contentBlock %}
 <div class="detail_con fl">
     <h3>{{ data.news.title }}</h3>
