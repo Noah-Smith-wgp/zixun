@@ -63,3 +63,6 @@ app.register_blueprint(verify_blueprint)
 
 from project.apps.news import news_blueprint
 app.register_blueprint(news_blueprint)
+
+from project.apps.user import user_blueprint
+app.register_blueprint(user_blueprint)
