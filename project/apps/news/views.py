@@ -1,7 +1,7 @@
 from flask import render_template, current_app, abort, g, jsonify, request
 from flask_restful import Api, Resource, reqparse
 
-from project.models.models import News, Comment
+from project.models.models import News, Comment, CommentLike
 from project.utils import constants
 from project.utils.common import user_login_data
 from project.utils.response_code import RET
@@ -155,5 +155,61 @@ class NewsCommentResource(Resource):
         return jsonify(errno=RET.OK, errmsg="评论成功", data=comment.to_dict())
 
 
+class CommentLikeResource(Resource):
+    @user_login_data
+    def post(self):
+
+        if not g.user:
+            return jsonify(errno=RET.SESSIONERR, errmsg="用户未登录")
+
+            # 获取参数
+        comment_id = request.json.get("comment_id")
+        news_id = request.json.get("news_id")
+        action = request.json.get("action")
+
+        # 判断参数
+        if not all([comment_id, news_id, action]):
+            return jsonify(errno=RET.PARAMERR, errmsg="参数错误")
+
+        if action not in ("add", "remove"):
+            return jsonify(errno=RET.PARAMERR, errmsg="参数错误")
+
+        # 查询评论数据
+        try:
+            comment = Comment.query.get(comment_id)
+        except Exception as e:
+            current_app.logger.error(e)
+            return jsonify(errno=RET.DBERR, errmsg="查询数据失败")
+
+        if not comment:
+            return jsonify(errno=RET.NODATA, errmsg="评论数据不存在")
+
+        if action == "add":
+            comment_like = CommentLike.query.filter_by(comment_id=comment_id, user_id=g.user.id).first()
+            if not comment_like:
+                comment_like = CommentLike()
+                comment_like.comment_id = comment_id
+                comment_like.user_id = g.user.id
+                db.session.add(comment_like)
+                # 增加点赞条数
+                comment.like_count += 1
+        else:
+            # 删除点赞数据
+            comment_like = CommentLike.query.filter_by(comment_id=comment_id, user_id=g.user.id).first()
+            if comment_like:
+                db.session.delete(comment_like)
+                # 减小点赞条数
+                comment.like_count -= 1
+
+        try:
+            db.session.commit()
+        except Exception as e:
+            current_app.logger.error(e)
+            db.session.rollback()
+            return jsonify(errno=RET.DBERR, errmsg="操作失败")
+        return jsonify(errno=RET.OK, errmsg="操作成功")
+
+
 news_api.add_resource(NewsCollectResource, '/news_collect')
 news_api.add_resource(NewsCommentResource, '/news_comment')
+news_api.add_resource(CommentLikeResource, '/comment_like')
