@@ -38,14 +38,33 @@ def news_detail(news_id):
         click_news_list.append(new.to_basic_dict())
 
     # 获取当前新闻的评论
-    comments = []
+    comments = None
     try:
         comments = Comment.query.filter(Comment.news_id == news_id).order_by(Comment.create_time.desc()).all()
     except Exception as e:
         current_app.logger.error(e)
+
+    comment_like_ids = []
+    if g.user:
+        # 如果当前用户已登录
+        try:
+            comment_ids = [comment.id for comment in comments]
+            if len(comment_ids) > 0:
+                # 取到当前用户在当前新闻的所有评论点赞的记录
+                comment_likes = CommentLike.query.filter(CommentLike.comment_id.in_(comment_ids),
+                                                         CommentLike.user_id == g.user.id).all()
+                # 取出记录中所有的评论id
+                comment_like_ids = [comment_like.comment_id for comment_like in comment_likes]
+        except Exception as e:
+            current_app.logger.error(e)
+
     comment_list = []
-    for item in comments:
+    for item in comments if comments else []:
         comment_dict = item.to_dict()
+        comment_dict["is_like"] = False
+        # 判断用户是否点赞该评论
+        if g.user and item.id in comment_like_ids:
+            comment_dict["is_like"] = True
         comment_list.append(comment_dict)
 
     # 判断是否收藏该新闻
