@@ -1,6 +1,7 @@
 from flask import g, redirect, render_template, request, jsonify, current_app, session
 
 from project import user_login_data, db
+from project.models.models import Category, News
 from project.utils import constants
 from project.utils.qiniu import qiniu_upload
 from project.utils.response_code import RET
@@ -169,3 +170,79 @@ def user_collection():
 
     data = {"total_page": total_page, "current_page": current_page, "collections": collection_dict_li}
     return render_template('news/user_collection.html', data=data)
+
+
+@user_blueprint.route('/news_release', methods=["GET", "POST"])
+@user_login_data
+def news_release():
+
+    if request.method == "GET":
+        categories = []
+        try:
+            # 获取所有的分类数据
+            categories = Category.query.all()
+        except Exception as e:
+            current_app.logger.error(e)
+
+        # 定义列表保存分类数据
+        categories_dicts = []
+
+        for category in categories:
+            # 获取字典
+            cate_dict = category.to_dict()
+            # 拼接内容
+            categories_dicts.append(cate_dict)
+
+        # 移除`最新`分类
+        categories_dicts.pop(0)
+        # 返回内容
+        return render_template('news/user_news_release.html', data={"categories": categories_dicts})
+
+    # POST 提交，执行发布新闻操作
+    # 1. 获取要提交的数据
+    title = request.form.get("title")
+    source = "个人发布"
+    digest = request.form.get("digest")
+    content = request.form.get("content")
+    index_image = request.files.get("index_image")
+    category_id = request.form.get("category_id")
+    # 1.1 判断数据是否有值
+    if not all([title, source, digest, content, index_image, category_id]):
+        return jsonify(errno=RET.PARAMERR, errmsg="参数有误")
+
+    # 1.2 尝试读取图片
+    try:
+        index_image = index_image.read()
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.PARAMERR, errmsg="参数有误")
+
+    # 2. 将标题图片上传到七牛
+    try:
+        key = qiniu_upload(index_image)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.THIRDERR, errmsg="上传图片错误")
+
+    # 3. 初始化新闻模型，并设置相关数据
+    news = News()
+    news.title = title
+    news.digest = digest
+    news.source = source
+    news.content = content
+    news.index_image_url = constants.QINIU_DOMIN_PREFIX + key
+    news.category_id = category_id
+    news.user_id = g.user.id
+    # 1代表待审核状态
+    news.status = 1
+
+    # 4. 保存到数据库
+    try:
+        db.session.add(news)
+        db.session.commit()
+    except Exception as e:
+        current_app.logger.error(e)
+        db.session.rollback()
+        return jsonify(errno=RET.DBERR, errmsg="保存数据失败")
+    # 5. 返回结果
+    return jsonify(errno=RET.OK, errmsg="发布成功，等待审核")
