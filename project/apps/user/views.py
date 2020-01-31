@@ -1,6 +1,8 @@
 from flask import g, redirect, render_template, request, jsonify, current_app, session
 
 from project import user_login_data, db
+from project.utils import constants
+from project.utils.qiniu import qiniu_upload
 from project.utils.response_code import RET
 from . import user_blueprint
 
@@ -59,3 +61,41 @@ def base_info():
 
     # 4. 返回响应
     return jsonify(errno=RET.OK, errmsg="更新成功")
+
+
+@user_blueprint.route('/pic_info', methods=["GET", "POST"])
+@user_login_data
+def pic_info():
+
+    user = g.user
+    if request.method == "GET":
+        return render_template('news/user_pic_info.html', data={"user_info": user.to_dict()})
+
+    # 1. 获取到上传的文件
+    try:
+        avatar_file = request.files.get("avatar").read()
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.PARAMERR, errmsg="读取文件出错")
+
+    # 2. 再将文件上传到七牛云
+    try:
+        url = qiniu_upload(avatar_file)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.THIRDERR, errmsg="上传图片错误")
+
+    # 3. 将头像信息更新到当前用户的模型中
+
+    # 设置用户模型相关数据
+    user.avatar_url = url
+    # 将数据保存到数据库
+    try:
+        db.session.commit()
+    except Exception as e:
+        current_app.logger.error(e)
+        db.session.rollback()
+        return jsonify(errno=RET.DBERR, errmsg="保存用户数据错误")
+
+    # 4. 返回上传的结果<avatar_url>
+    return jsonify(errno=RET.OK, errmsg="OK", data={"avatar_url": constants.QINIU_URL + url})
