@@ -3,7 +3,7 @@ function getCookie(name) {
     return r ? r[1] : undefined;
 }
 
-$(function () {
+$(function(){
 
     $(".base_info").submit(function (e) {
         e.preventDefault()
