@@ -1,13 +1,19 @@
-from flask import render_template, request, current_app, session
+from flask import render_template, request, current_app, session, redirect, url_for, g
 
+from project import user_login_data
 from project.models.models import User
 from . import admin_blueprint
 
 
 @admin_blueprint.route('/login', methods=["GET", "POST"])
 def admin_login():
-
     if request.method == "GET":
+        # 去 session 中取指定的值
+        user_id = session.get("user_id", None)
+        is_admin = session.get("is_admin", False)
+        # 如果用户id存在，并且是管理员，那么直接跳转管理后台主页
+        if user_id and is_admin:
+            return redirect(url_for('admin.admin_index'))
         return render_template('admin/login.html')
 
     # 取到登录的参数
@@ -36,5 +42,24 @@ def admin_login():
     session["mobile"] = user.mobile
     session["is_admin"] = True
 
-    # TODO 跳转到后台管理主页,暂未实现
-    return "登录成功，需要跳转到主页"
+    # 跳转到后台管理主页
+    return redirect(url_for('admin.admin_index'))
+
+
+@admin_blueprint.route('/')
+@user_login_data
+def admin_index():
+    """站点主页
+    """
+    # 读取登录用户的信息
+    user = g.user
+    # 优化进入主页逻辑：如果管理员进入主页，必须要登录状态，反之，就引导到登录界面
+    if not user:
+        return redirect(url_for('admin.admin_login'))
+
+    # 构造渲染数据
+    context = {
+        'user': user.to_dict()
+    }
+    # 渲染主页
+    return render_template('admin/index.html', context=context)
