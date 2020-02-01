@@ -181,6 +181,10 @@ class LoginResource(Resource):
         session["nick_name"] = user.nick_name
         session["mobile"] = user.mobile
 
+        # 逻辑优化：如果是管理员进入到前台页面，状态保持信息中需要有is_admin
+        if user.is_admin:
+            session['is_admin'] = True
+
         user.last_login = datetime.now()
 
         try:
@@ -198,6 +202,7 @@ class LogoutResource(Resource):
         session.pop('user_id', None)
         session.pop('nick_name', None)
         session.pop('mobile', None)
+        session.pop('is_admin', None)
         # 返回结果
         return jsonify(errno=RET.OK, errmsg="OK")
 
