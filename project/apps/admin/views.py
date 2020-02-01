@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from flask import render_template, request, current_app, session, redirect, url_for, g
 
 from project import user_login_data
-from project.models.models import User
+from project.models.models import User, News
 from project.utils import constants
 from . import admin_blueprint
 
@@ -160,3 +160,45 @@ def user_list():
 
     context = {"total_page": total_page, "current_page": current_page, "users": users_list}
     return render_template('admin/user_list.html', data=context)
+
+
+@admin_blueprint.route('/news_review')
+def news_review():
+    """返回待审核新闻列表"""
+
+    page = request.args.get("p", 1)
+    keywords = request.args.get("keywords", "")
+    try:
+        page = int(page)
+    except Exception as e:
+        current_app.logger.error(e)
+        page = 1
+
+    news_list = []
+    current_page = 1
+    total_page = 1
+
+    try:
+        filters = [News.status != 0]
+        # 如果有关键词
+        if keywords:
+            # 添加关键词的检索选项
+            filters.append(News.title.contains(keywords))
+        # 查询
+        paginate = News.query.filter(*filters) \
+            .order_by(News.create_time.desc()) \
+            .paginate(page, constants.ADMIN_NEWS_PAGE_MAX_COUNT, False)
+
+        news_list = paginate.items
+        current_page = paginate.page
+        total_page = paginate.pages
+    except Exception as e:
+        current_app.logger.error(e)
+
+    news_dict_list = []
+    for news in news_list:
+        news_dict_list.append(news.to_review_dict())
+
+    context = {"total_page": total_page, "current_page": current_page, "news_list": news_dict_list}
+
+    return render_template('admin/news_review.html', data=context)
