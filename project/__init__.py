@@ -66,3 +66,6 @@ app.register_blueprint(news_blueprint)
 
 from project.apps.user import user_blueprint
 app.register_blueprint(user_blueprint)
+
+from project.apps.admin import admin_blueprint
+app.register_blueprint(admin_blueprint)
