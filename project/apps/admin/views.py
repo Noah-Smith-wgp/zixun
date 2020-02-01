@@ -453,3 +453,14 @@ def add_category():
         db.session.rollback()
         return jsonify(errno=RET.DBERR, errmsg="保存数据失败")
     return jsonify(errno=RET.OK, errmsg="保存数据成功")
+
+
+@admin_blueprint.route('/logout', methods=['POST'])
+def admin_logout():
+
+    session.pop('user_id', None)
+    session.pop('nick_name', None)
+    session.pop('mobile', None)
+    session.pop('is_admin', None)
+    # 重定向到登录页面
+    return redirect(url_for('admin.admin_login'))
