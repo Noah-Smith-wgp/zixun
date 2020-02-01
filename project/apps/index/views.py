@@ -66,9 +66,6 @@ class NewsListResource(Resource):
         # 如果分类id不为0，那么添加分类id的过滤
         if category_id != "0":
             filters.append(News.category_id == category_id)
-        # 如果分类id不为1，那么添加分类id的过滤
-        if category_id != "1":
-            filters.append(News.category_id == category_id)
 
         try:
             paginate = News.query.filter(*filters).order_by(News.create_time.desc()).paginate(page, per_page, False)
