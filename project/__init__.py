@@ -5,12 +5,13 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import CSRFProtect
 from flask_wtf.csrf import generate_csrf
 
-from config import Config, DevelopmentConfig, setup_log
+from config import Config, DevelopmentConfig, setup_log, ProductionConfig
 
 # 记录日志
 from project.utils.common import do_index_class, user_login_data
 
-setup_log(DevelopmentConfig)
+# setup_log(DevelopmentConfig)
+setup_log(ProductionConfig)
 
 
 def get_app(config=Config):
@@ -33,7 +34,8 @@ def get_app(config=Config):
     return app
 
 
-app = get_app(DevelopmentConfig)
+# app = get_app(DevelopmentConfig)
+app = get_app(ProductionConfig)
 
 db = SQLAlchemy(app)
 

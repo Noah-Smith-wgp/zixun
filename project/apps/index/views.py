@@ -64,7 +64,7 @@ class NewsListResource(Resource):
         # 查询数据并分页
         filters = [News.status == 0]
         # 如果分类id不为0，那么添加分类id的过滤
-        if category_id != "0":
+        if category_id != "1":
             filters.append(News.category_id == category_id)
 
         try:
